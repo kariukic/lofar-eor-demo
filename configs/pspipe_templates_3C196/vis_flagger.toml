@@ -1,0 +1,13 @@
+[flag_delay_time_outliers]
+n_sigma = 5
+window_fct = 'boxcar'
+wedge_factor = 1
+hpass_filter = true
+
+[flag_delay_baseline_outliers]
+n_sigma = 5
+window_fct = 'boxcar'
+wedge_factor = 1.2
+max_threshold = 2.5
+min_threshold = 1.5
+hpass_filter = true
