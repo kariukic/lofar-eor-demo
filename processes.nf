@@ -4,7 +4,7 @@ include {
     getTime
 } from './utils.nf'
 
-process makeDirs {
+process setupDirs {
     debug true
 
     input:
@@ -22,7 +22,10 @@ process makeDirs {
             mkdir -p ${params.data.path}/${params.out.logs}/average
             mkdir -p ${params.data.path}/${params.out.logs}/image
             mkdir -p ${params.data.path}/${params.out.logs}/datalists
-            mkdir -p "${params.data.path}/${params.out.logs}/power_spectrum"
+            mkdir -p "${params.data.path}/${params.out.logs}/power_spectrum/di"
+            mkdir -p "${params.data.path}/${params.out.logs}/power_spectrum/bp"
+            mkdir -p "${params.data.path}/${params.out.logs}/power_spectrum/dd"
+            mkdir -p "${params.data.path}/${params.out.logs}/power_spectrum/pdd"
             mkdir -p ${params.data.path}/${params.out.results}
         """
 }
@@ -57,12 +60,13 @@ process FilterInter {
         path ms
 
     output:
-        path "${ms.getName().replace(".MS", ".FMS")}"
+        // path "${ms.getName().replace(".MS", ".FMS")}"
+        path "${ms.getName() + '.noInter'}"
 
     script:
         time = getTime()
         """
-        DP3 msin=${ms} steps=[filter] filter.remove=true filter.baseline="[CR]S*&&" msout="${ms.getName().replace(".MS", ".FMS")}" msout.overwrite=True > "${params.data.path}/${params.out.logs}/flag/filter_intrastations_and_international_stations_${ms}_${time}.log" 2>&1
+        DP3 msin=${ms} steps=[filter] filter.remove=true filter.baseline="[CR]S*&&" msout="${ms.getName() + '.noInter'}" msout.overwrite=True > "${params.data.path}/${params.out.logs}/flag/filter_intrastations_and_international_stations_${ms}_${time}.log" 2>&1
         """
 }
 
@@ -98,7 +102,7 @@ process AOFlag {
             """
 }
 
-process Average {
+process AverageData {
     label 'sing'
     publishDir params.data.path, mode: 'move'
 
@@ -180,7 +184,8 @@ process AOqualityCollect {
 
 process AOqualityCombine {
     label 'sing'
-    publishDir "${params.data.path}/${params.out.results}/aoquality", mode: 'copy', overwrite: true
+    publishDir "${params.data.path}/${params.out.results}/aoquality/${output_name}", pattern: "*.qs", mode: "copy", overwrite: true
+    publishDir "${params.data.path}/${params.out.results}/aoquality/${output_name}/plots", pattern: "*.pdf", mode: "copy", overwrite: true
     
     input:
         val ready
@@ -189,6 +194,7 @@ process AOqualityCombine {
 
     output:
         path "${output_name}.qs"
+        path "*.pdf"
         val true, emit: done
 
     script:
@@ -196,12 +202,14 @@ process AOqualityCombine {
         List tlist = file(file_list).readLines()
         String mses = tlist.collect {"${it}"}.join(" ")
         """
-        aoquality combine ${output_name}.qs ${mses} > ${params.data.path}/${params.out.logs}/aoquality/combine_${output_name}_${time}.log
+        aoquality combine ${output_name}.qs ${mses} > ${params.data.path}/${params.out.logs}/aoquality/combine_${output_name}_${time}.log 2>&1
+        python3 ${projectDir}/templates/plot_flags.py plot_occ ${file_list} --filename ${output_name} >> ${params.data.path}/${params.out.logs}/aoquality/combine_${output_name}_${time}.log 2>&1
+        python3 ${projectDir}/templates/plot_aoqstats.py plot_aoq "${output_name}.qs" --name ${output_name} >> ${params.data.path}/${params.out.logs}/aoquality/combine_${output_name}_${time}.log 2>&1
         """
 }
 
 
-process WriteMSlist {
+process GetData {
     debug true
 
     input:
@@ -210,7 +218,7 @@ process WriteMSlist {
         val txtname
 
     output:
-        val "${txtname}"
+        path "${txtname}"
 
     script:
         """
@@ -293,6 +301,31 @@ process ApplyGains {
 
         """
         DP3 ${parset} msin=${ms} applycal.parmdb=${solsfile} msin.datacolumn=${incol} msout.datacolumn=${outcol} > "${params.data.path}/${params.out.logs}/calibrate/applygains_di_${ms}_${solsfile}_to_${outcol}_${time}.log" 2>&1
+        """
+}
+
+process H5ParmCollect {
+    debug true
+    label 'sing'
+
+    publishDir "${params.data.path}/results/solutions/${output_name}", pattern: "*.h5", mode: "move", overwrite: true
+    publishDir "${params.data.path}/results/solutions/${output_name}/plots", pattern: "*.png", mode: "move", overwrite: true
+
+    input:
+        val ready
+        val solution_files
+        val output_name
+
+    output:
+        path "${output_name}.h5", emit: combined_sols
+        path "*.png", emit: plots
+        val true, emit: done
+
+    script:
+        """
+        H5parm_collector.py ${solution_files} -o ${output_name}.h5 > "${params.data.path}/${params.out.logs}/calibrate/h5parm_collect.log" 2>&1
+        #soltool plot --plot_dir \$(pwd) ${output_name}.h5 >> "${params.data.path}/${params.out.logs}/calibrate/h5parm_collect.log" 2>&1
+        python3 ${projectDir}/templates/plot_sols.py plot ${output_name}.h5 >> "${params.data.path}/${params.out.logs}/calibrate/h5parm_collect.log" 2>&1
         """
 }
 
@@ -413,15 +446,16 @@ process UVWFlag {
         val uvlambdamax
 
     output:
+        path "${msin}.l${uvlambdamin}to${uvlambdamax}", emit: msout
         val true , emit: done
-    
 
     script:
         time=getTime()
         """
-        DP3 steps=[uvwflag] msin=${msin} msin.datacolumn=${data_column} uvwflag.uvlambdamin=${uvlambdamin} uvwflag.uvlambdamax=${uvlambdamax} msout=. msout.overwrite=True > "${params.data.path}/${params.out.logs}/flag/uvwflag_${msin}_${data_column}_${time}.log" 2>&1
+        DP3 steps=[uvwflag] msin=${msin} msin.datacolumn=${data_column} uvwflag.uvlambdamin=${uvlambdamin} uvwflag.uvlambdamax=${uvlambdamax} msout=${msin}.l${uvlambdamin}to${uvlambdamax} msout.overwrite=True > "${params.data.path}/${params.out.logs}/flag/uvwflag_${msin}_${data_column}_${time}.log" 2>&1
         """
 }
+
 
 process ApplyBEAM {
     label 'sing'
@@ -434,7 +468,7 @@ process ApplyBEAM {
         val outcol
 
     output:
-        path "${ms}"
+        val true
 
     script:
         time = getTime()

@@ -157,5 +157,6 @@ process RunPSPIPE {
         else
             echo "GPR foreground subtraction NOT applied"
         fi
+        python3 !{projectDir}/templates/plot_ps.py plot_ps !{toml_file} --obsid !{obsid} --plotdir !{ps_dir}
     '''
 }
