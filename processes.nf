@@ -60,7 +60,6 @@ process FilterInter {
         path ms
 
     output:
-        // path "${ms.getName().replace(".MS", ".FMS")}"
         path "${ms.getName() + '.noInter'}"
 
     script:
@@ -85,7 +84,6 @@ process AOFlag {
         val interpolate
 
     output:
-        // path "${ms}"
         val true , emit: done
     
 
@@ -129,6 +127,8 @@ process AverageData {
 process WScleanImage {
     label 'sing'
     publishDir "${params.data.path}/${params.out.results}/wsclean/${datacol}", pattern: "*.fits", mode: "move", overwrite: true
+    publishDir "${params.data.path}/${params.out.results}/wsclean/${datacol}/plots", pattern: "*.png", mode: "move", overwrite: true
+
     // publishDir "${params.data.path}/${params.out.results}/images", pattern: "*.txt", mode: "copy", overwrite: true
 
     input:
@@ -148,6 +148,7 @@ process WScleanImage {
 
     output:
         path "*.fits"
+        path "*.png"
         val true , emit: done
         // path "${imname}-sources.txt", emit: model
 
@@ -155,14 +156,21 @@ process WScleanImage {
         if ( chansout == 1 )
             """
             wsclean -v -log-time -name ${imname} -data-column ${datacol} -pol ${pol} -weight ${weight} -scale ${scale} -size ${size} ${size} -make-psf -niter ${niter} -gridder wgridder -reorder ${mses} > ${params.data.path}/${params.out.logs}/image/wsclean_${imname}_image.log 2>&1
+
+            python3 ${projectDir}/templates/plot_images.py plot --images '*-I-image.fits' --filename ${imname}
             """
 
         else
             """
             wsclean -v -log-time -name ${imname} -data-column ${datacol} -pol ${pol} -weight ${weight} -scale ${scale} -size ${size} ${size} -niter ${niter} -apply-primary-beam -make-psf -join-channels -channels-out ${chansout} -gridder wgridder -no-update-model-required -no-dirty -no-mf-weighting ${mses} > ${params.data.path}/${params.out.logs}/image/wsclean_${imname}_image.log 2>&1
+
+            ls *-I-image.fits > imlist.txt
+
+            python3 ${projectDir}/templates/plot_images.py plot --imagelist imlist.txt --filename ${imname}
             """
 
 }
+
 
 process AOqualityCollect {
     label 'sing'

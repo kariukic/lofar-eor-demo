@@ -1,0 +1,7 @@
+msin.datacolumn =  DATA
+msout = .
+msout.datacolumn = BP_CORRECTED
+steps = [applycal]
+applycal.steps = [amp,phase]
+applycal.amp.correction = amplitude000
+applycal.phase.correction = phase000

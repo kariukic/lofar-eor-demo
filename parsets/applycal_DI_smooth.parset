@@ -1,0 +1,7 @@
+msin.datacolumn =  DATA
+msout = .
+msout.datacolumn = DI_CORRECTED
+steps = [applycal]
+applycal.correction = fulljones
+applycal.solset = sol000
+applycal.soltab = [amplitude000,phase000]

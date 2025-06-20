@@ -1,0 +1,14 @@
+numthreads = 12
+msout=.
+steps = [sub]
+sub.type=h5parmpredict
+sub.operation = subtract
+sub.usebeammodel = true
+sub.beammode = full
+sub.correctfreqsmearing = true
+sub.beamproximitylimit = 600
+sub.applycal.correction = amplitude000
+sub.applycal.steps=[amp,phase]
+sub.applycal.amp.correction=amplitude000
+sub.applycal.phase.correction=phase000
+            

@@ -6,7 +6,7 @@ from casacore import tables as tb
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import ticker
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm, Normalize
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -18,6 +18,7 @@ mpl.rcParams["ytick.right"] = True
 mpl.rcParams["image.interpolation"] = "none"
 mpl.rcParams["image.origin"] = "lower"
 mpl.rcParams["image.aspect"] = "auto"
+
 
 class Flags(object):
     def __init__(self, ms_files):
@@ -68,26 +69,27 @@ class Flags(object):
 
         fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(8, 6))
 
-        max_rfi = np.max(flag_occ_all_nozero * 100) + 1  # +1 to avoid lognorm error when rfi is zero
+        max_rfi = (
+            np.max(flag_occ_all_nozero * 100) + 0.1
+        )  # +1 to avoid lognorm error when rfi is zero
+        min_rfi = np.min(flag_occ_all_nozero * 100)
         im1 = ax1.imshow(
             flag_occ_all_nozero * 100,
             cmap="RdYlGn_r",
-            norm=LogNorm(vmin=.1, vmax=max_rfi),
-            extent=[freq_all[0], freq_all[-1], 0, (time[-1] - time[0]) / 3600])
+            norm=Normalize(vmin=min_rfi, vmax=max_rfi),
+            extent=[freq_all[0], freq_all[-1], 0, (time[-1] - time[0]) / 3600],
+        )
         ax1.set_xticklabels(" ")
         ax1.set_ylabel("Obs. Time (min)")
 
-        axins1 = inset_axes(
-            ax1,
-            width="100%",
-            height="6%",
-            loc="upper center",
-            bbox_to_anchor=(0, 0.1, 1, 1),
-            bbox_transform=ax1.transAxes,
-            borderpad=0,
-        )
         cb1 = fig.colorbar(
-            im1, cax=axins1, orientation="horizontal"
+            im1,
+            orientation="horizontal",
+            # use_gridspec=True,
+            location="top",
+            shrink=0.5,
+            aspect=30,
+            pad=0.01,
         )
         cb1.ax.xaxis.set_ticks_position("top")
         cb1.ax.xaxis.set_label_position("top")
@@ -118,8 +120,6 @@ class Flags(object):
         )
         axbottom.set_xlabel("Frequency (MHz)")
         axbottom.set_ylabel("RFI %")
-        # yrange = axbottom.get_ylim()
-        # axbottom.set_ylim(yrange[0], yrange[1])
         axbottom.set_ylim(0, max_rfi)
         axbottom.margins(x=0)
         axbottom.grid(axis="both")
@@ -139,27 +139,27 @@ class Flags(object):
         axright.set_xlim(0, max_rfi)
         axright.grid(axis="both")
 
-        plt.tight_layout()
+        fig.tight_layout()
         return fig
 
 
 @click.group()
 def main():
-    ''' plot flags occupancy ...'''
+    """plot flags occupancy ..."""
 
 
-@main.command('plot_occ')
-@click.argument('mslist')
-@click.option('--filename', help='output filename', type=str, default='occupancy')
-@click.option('--n_cpu', help='Number of CPU to use', type=int, default=100)
-def plot_occupancy(mslist, n_cpu=100, filename='occupancy'):
-    ''' Plot flags occupancy '''
+@main.command("plot_occ")
+@click.argument("mslist")
+@click.option("--filename", help="output filename", type=str, default="occupancy")
+@click.option("--n_cpu", help="Number of CPU to use", type=int, default=100)
+def plot_occupancy(mslist, n_cpu=100, filename="occupancy"):
+    """Plot flags occupancy"""
     with open(mslist) as t:
         mses = [line.strip() for line in t]
     flags = Flags(mses)
     fig = flags.plot_flags_occupancy(num_cores=n_cpu)
-    fig.savefig(f'{filename}_occupancy.pdf', dpi=300, bbox_inches='tight')
+    fig.savefig(f"{filename}_occupancy.pdf", dpi=300, bbox_inches="tight")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

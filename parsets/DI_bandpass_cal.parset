@@ -1,0 +1,15 @@
+numthreads = 40
+msin.datacolumn = DATA
+msout = .
+steps = [gaincal]
+gaincal.usemodelcolumn = false
+gaincal.usebeammodel = true
+gaincal.beammode = full
+gaincal.beamproximitylimit = 600
+gaincal.caltype = diagonal
+gaincal.uvlambdamin = 50
+gaincal.uvlambdamax = 1e15
+gaincal.solint = 450
+gaincal.nchan = 1
+gaincal.maxiter = 50
+gaincal.propagatesolutions = true

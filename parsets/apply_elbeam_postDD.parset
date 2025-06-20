@@ -1,0 +1,6 @@
+msin.datacolumn=CORRECTED_DATA
+msout=.
+msout.datacolumn=POSTDD_CORRECTED_DATA
+steps=[applybeam]
+applybeam.beammode = element
+applybeam.invert = true
