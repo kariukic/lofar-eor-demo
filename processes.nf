@@ -45,7 +45,7 @@ process FlagIntra {
     script:
         time = getTime()
         """
-        python3 /home/codex/chege/software/pipelines/twoleap/templates/flag_intrastations.py -i ${ms} > "${params.data.path}/${params.out.logs}/flag/flag_intrastations_${ms}_${time}.log" 2>&1
+        python3 ${projectDir}/templates/flag_intrastations.py -i ${ms} > "${params.data.path}/${params.out.logs}/flag/flag_intrastations_${ms}_${time}.log" 2>&1
         """
 
 }
