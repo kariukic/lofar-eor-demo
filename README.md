@@ -6,7 +6,7 @@ lofar-eor-demo is a demonstration pipeline for the Epoch of Reionization experim
 
 - [DP3](https://github.com/lofar-astron/DP3)
 - [AOflagger](https://sourceforge.net/p/aoflagger/wiki/Home/)
-- [WSClean](https://sourceforge.net/p/wsclean/wiki/Home/))
+- [WSClean](https://sourceforge.net/p/wsclean/wiki/Home/)
 - [Pspipe](https://gitlab.com/flomertens/pspipe)
 
 Dependencies
