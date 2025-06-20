@@ -1,4 +1,3 @@
-# lofar-eor-demo
 LOFAR EoR Demonstration pipeline
 ========================================================
 
